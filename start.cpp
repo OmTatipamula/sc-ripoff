@@ -86,6 +86,7 @@ USAGE:
 bool startService(const StartStopOptions &opts)
 {
 
+
     const char *machineName = getMachineName(opts.serverName);
 
     SC_HANDLE hSCManager = OpenSCManagerA(machineName, nullptr, SC_MANAGER_CONNECT);

@@ -3,12 +3,12 @@
 #define SERVICE_ADAPTER 0x00000004
 #define SERVICE_RECOGNIZER_DRIVER 0x00000008
 
-
 #include <string>
 #include <windows.h>
 
 // Our QueryOptions structure.
-struct QueryOptions {
+struct QueryOptions
+{
     // Optional server name. If empty, assume local.
     std::string serverName = "\\\\local";
     // Optional service name.
@@ -30,9 +30,8 @@ struct QueryOptions {
     std::string group = "";
 };
 
-
 // Function declaration for creating the service.
-void query(const QueryOptions& opts);
+void query(const QueryOptions &opts);
 // Function declaration for parsing query options
-int ParseQueryOptions(const std::vector<std::string>& tokens, QueryOptions& opts);
+int ParseQueryOptions(const std::vector<std::string> &tokens, QueryOptions &opts);
 #endif // CREATE_SERVICE_H

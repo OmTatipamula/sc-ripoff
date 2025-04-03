@@ -10,6 +10,58 @@
 #include <vector>
 #include <string>
 
+
+void printCreateHelp()
+{
+    std::cout << R"(DESCRIPTION:
+        Creates a service entry in the registry and Service Database.
+USAGE:
+        sc <server> create [service name] [binPath= ] <option1> <option2>...
+
+OPTIONS:
+NOTE: The option name includes the equal sign. 
+      A space is required between the equal sign and the value.
+ type= <own|share|interact|kernel|filesys|rec|userown|usershare>
+       (default = own)
+ start= <boot|system|auto|demand|disabled|delayed-auto>
+       (default = demand)
+ error= <normal|severe|critical|ignore>
+       (default = normal)
+ binPath= <BinaryPathName to the .exe file>
+ group= <LoadOrderGroup>
+ tag= <yes|no>
+ depend= <Dependencies(separated by / (forward slash))>
+ obj= <AccountName|ObjectName>
+       (default = LocalSystem)
+ DisplayName= <display name>
+ password= <password>
+PS C:\Users\kotori\Documents\DFOR740 Midterm> sc.exe^C
+PS C:\Users\kotori\Documents\DFOR740 Midterm> sc.exe create
+DESCRIPTION:
+        Creates a service entry in the registry and Service Database.
+USAGE:
+        sc <server> create [service name] [binPath= ] <option1> <option2>...
+
+OPTIONS:
+NOTE: The option name includes the equal sign. 
+      A space is required between the equal sign and the value.
+ type= <own|share|interact|kernel|filesys|rec|userown|usershare>
+       (default = own)
+ start= <boot|system|auto|demand|disabled|delayed-auto>
+       (default = demand)
+ error= <normal|severe|critical|ignore>
+       (default = normal)
+ binPath= <BinaryPathName to the .exe file>
+ group= <LoadOrderGroup>
+ tag= <yes|no>
+ depend= <Dependencies(separated by / (forward slash))>
+ obj= <AccountName|ObjectName>
+       (default = LocalSystem)
+ DisplayName= <display name>
+ password= <password>
+)";
+}
+
 // ParseCreateOptions: Parses tokens (starting with the service name) into a CreateOptions struct.
 // Expected tokens:
 //   [0] = service name (required)
@@ -23,108 +75,134 @@
 //       own, share, kernel, filesys, rec, interact
 //    If its value is "interact" then a second "type=" must be provided with a value of "own" or "share".
 //  - "binpath=" is required.
-void ParseCreateOptions(const std::vector<std::string>& args, CreateOptions &opts) {
-    if (args.empty()) {
+void ParseCreateOptions(const std::vector<std::string> &args, CreateOptions &opts)
+{
+    if (args.empty())
+    {
         throw std::invalid_argument("Error: create requires a service name.");
     }
-    
+
     // The first token is the service name.
     opts.serviceName = args[0];
-    
+
     // Flags to track occurrences of the "type" option.
     bool firstTypeProvided = false;
     bool secondTypeProvided = false;
-    
+
     // Process remaining tokens.
     // We expect tokens in key-value pairs: key= then value.
-    for (size_t i = 1; i < args.size(); ) {
+    for (size_t i = 1; i < args.size();)
+    {
         std::string token = args[i];
         // Expect token ending with '=' (e.g. "binpath=").
-        if (token.size() < 2 || token.back() != '=') {
+        if (token.size() < 2 || token.back() != '=')
+        {
             throw std::invalid_argument("Error: Invalid option format '" + token + "'. Expected key= followed by a value.");
         }
         std::string key = token.substr(0, token.size() - 1);
         i++;
-        if (i >= args.size()) {
+        if (i >= args.size())
+        {
             throw std::invalid_argument("Error: Missing value for option '" + key + "='.");
         }
         std::string value = args[i];
         i++;
-        
-        if (key == "type") {
-            if (!firstTypeProvided) {
+
+        if (key == "type")
+        {
+            if (!firstTypeProvided)
+            {
                 // First occurrence of "type=".
                 if (value != "own" && value != "share" && value != "kernel" &&
-                    value != "filesys" && value != "rec" && value != "interact") {
+                    value != "filesys" && value != "rec" && value != "interact")
+                {
                     throw std::invalid_argument("Error: Invalid value for type. Allowed: own, share, kernel, filesys, rec, interact.");
                 }
                 opts.serviceType = value;
                 firstTypeProvided = true;
-            } else {
+            }
+            else
+            {
                 // Second occurrence of "type=".
-                if (opts.serviceType != "interact") {
+                if (opts.serviceType != "interact")
+                {
                     throw std::invalid_argument("Error: Unexpected second type parameter when first type is not 'interact'.");
                 }
-                if (value != "own" && value != "share") {
+                if (value != "own" && value != "share")
+                {
                     throw std::invalid_argument("Error: Invalid value for second type. Allowed: own, share.");
                 }
                 opts.interactType = value;
                 secondTypeProvided = true;
             }
         }
-        else if (key == "start") {
+        else if (key == "start")
+        {
             if (value != "boot" && value != "system" && value != "auto" &&
-                value != "demand" && value != "disabled" && value != "delayed-auto") {
+                value != "demand" && value != "disabled" && value != "delayed-auto")
+            {
                 throw std::invalid_argument("Error: Invalid start type. Allowed: boot, system, auto, demand, disabled, delayed-auto.");
             }
             opts.startType = value;
         }
-        else if (key == "error") {
-            if (value != "normal" && value != "severe" && value != "critical" && value != "ignore") {
+        else if (key == "error")
+        {
+            if (value != "normal" && value != "severe" && value != "critical" && value != "ignore")
+            {
                 throw std::invalid_argument("Error: Invalid error control value. Allowed: normal, severe, critical, ignore.");
             }
             opts.errorControl = value;
         }
-        else if (key == "binpath") {
+        else if (key == "binpath")
+        {
             opts.binpath = value;
         }
-        else if (key == "group") {
+        else if (key == "group")
+        {
             opts.group = value;
         }
-        else if (key == "tag") {
-            if (value != "yes" && value != "no") {
+        else if (key == "tag")
+        {
+            if (value != "yes" && value != "no")
+            {
                 throw std::invalid_argument("Error: Invalid tag value. Allowed: yes, no.");
             }
             opts.tag = value;
         }
-        else if (key == "depend") {
+        else if (key == "depend")
+        {
             opts.depend = value;
         }
-        else if (key == "obj") {
+        else if (key == "obj")
+        {
             opts.obj = value;
         }
-        else if (key == "displayname") {
+        else if (key == "displayname")
+        {
             opts.displayname = value;
         }
-        else if (key == "password") {
+        else if (key == "password")
+        {
             opts.password = value;
         }
-        else {
+        else
+        {
             throw std::invalid_argument("Error: Unknown option '" + key + "='.");
         }
     }
-    
+
     // Ensure required parameters are provided.
-    if (opts.binpath.empty()) {
+    if (opts.binpath.empty())
+    {
         throw std::invalid_argument("Error: binpath parameter is required.");
     }
-    if (opts.serviceType == "interact" && !secondTypeProvided) {
+    if (opts.serviceType == "interact" && !secondTypeProvided)
+    {
         throw std::invalid_argument("Error: When type is 'interact', a second type parameter (own/share) must be provided.");
     }
 }
 
-
-DWORD MapServiceType(const std::string& svcType, const std::string& interactType)
+DWORD MapServiceType(const std::string &svcType, const std::string &interactType)
 {
     if (svcType == "own")
         return SERVICE_WIN32_OWN_PROCESS;
@@ -153,7 +231,7 @@ DWORD MapServiceType(const std::string& svcType, const std::string& interactType
     return SERVICE_WIN32_OWN_PROCESS;
 }
 
-DWORD MapStartType(const std::string& startType)
+DWORD MapStartType(const std::string &startType)
 {
     if (startType == "boot")
         return SERVICE_BOOT_START;
@@ -168,7 +246,7 @@ DWORD MapStartType(const std::string& startType)
     return SERVICE_DEMAND_START;
 }
 
-DWORD MapErrorControl(const std::string& errorControl)
+DWORD MapErrorControl(const std::string &errorControl)
 {
     if (errorControl == "normal")
         return SERVICE_ERROR_NORMAL;
@@ -183,16 +261,16 @@ DWORD MapErrorControl(const std::string& errorControl)
 
 // Convert dependency string (with '/' delimiters) to a double-null-terminated multi-string.
 // see: https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-createservicea
-// 
-std::string ConvertDependencies(const std::string& deps)
+//
+std::string ConvertDependencies(const std::string &deps)
 {
     if (deps.empty())
         return std::string();
-    
+
     std::istringstream iss(deps);
     std::string token;
     std::string multiStr;
-    
+
     while (std::getline(iss, token, '/'))
     {
         if (!token.empty())
@@ -211,52 +289,51 @@ void createService(const CreateOptions &opts)
     SC_HANDLE hSCManager = OpenSCManagerA(
         opts.serverName.empty() ? NULL : opts.serverName.c_str(),
         NULL,
-        SC_MANAGER_CREATE_SERVICE
-    );
-    
+        SC_MANAGER_CREATE_SERVICE);
+
     if (hSCManager == NULL)
     {
         std::cerr << "OpenSCManager failed (" << GetLastError() << ")\n";
         return;
     }
-    
+
     DWORD dwServiceType = MapServiceType(opts.serviceType, opts.interactType);
-    DWORD dwStartType   = MapStartType(opts.startType);
-    DWORD dwErrorCtrl   = MapErrorControl(opts.errorControl);
-    
+    DWORD dwStartType = MapStartType(opts.startType);
+    DWORD dwErrorCtrl = MapErrorControl(opts.errorControl);
+
     std::string depsMultiStr = ConvertDependencies(opts.depend);
     LPSTR lpDependencies = depsMultiStr.empty() ? NULL : const_cast<LPSTR>(depsMultiStr.c_str());
-    
+
     DWORD dwTagId = 0;
     DWORD *lpTagId = (opts.tag == "yes") ? &dwTagId : NULL;
-    
+
     LPCSTR pszDisplayName = opts.displayname.empty() ? opts.serviceName.c_str() : opts.displayname.c_str();
-    
+
     SC_HANDLE hService = CreateServiceA(
-        hSCManager,                              // SCManager database handle
-        opts.serviceName.c_str(),                // Name of service to install
-        pszDisplayName,                          // Display name
-        SERVICE_ALL_ACCESS,                      // Desired access
-        dwServiceType,                           // Service type
-        dwStartType,                             // Start type
-        dwErrorCtrl,                             // Error control type
-        opts.binpath.c_str(),                    // Service's binary path
-        opts.group.empty() ? NULL : opts.group.c_str(), // Load order group
-        lpTagId,                                 // Tag ID pointer (optional)
-        lpDependencies,                          // Dependencies
-        opts.obj.c_str(),                        // Service start name
+        hSCManager,                                          // SCManager database handle
+        opts.serviceName.c_str(),                            // Name of service to install
+        pszDisplayName,                                      // Display name
+        SERVICE_ALL_ACCESS,                                  // Desired access
+        dwServiceType,                                       // Service type
+        dwStartType,                                         // Start type
+        dwErrorCtrl,                                         // Error control type
+        opts.binpath.c_str(),                                // Service's binary path
+        opts.group.empty() ? NULL : opts.group.c_str(),      // Load order group
+        lpTagId,                                             // Tag ID pointer (optional)
+        lpDependencies,                                      // Dependencies
+        opts.obj.c_str(),                                    // Service start name
         opts.password.empty() ? NULL : opts.password.c_str() // Password
     );
-    
+
     if (hService == NULL)
     {
         std::cerr << "CreateService failed (" << GetLastError() << ")\n";
         CloseServiceHandle(hSCManager);
         return;
     }
-    
+
     std::cout << "Service created successfully.\n";
-    
+
     if (opts.startType == "delayed-auto")
     {
         SERVICE_DELAYED_AUTO_START_INFO delayedInfo;
@@ -273,7 +350,7 @@ void createService(const CreateOptions &opts)
             std::cout << "Delayed auto-start configured.\n";
         }
     }
-    
+
     // Cleanup handles.
     CloseServiceHandle(hService);
     CloseServiceHandle(hSCManager);

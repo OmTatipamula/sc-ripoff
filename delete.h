@@ -7,7 +7,8 @@
 #include <windows.h>
 
 // Structure for the "delete" subcommand options.
-struct DeleteOptions {
+struct DeleteOptions
+{
     std::string serverName;  // Optional server name. If empty, defaults to local.
     std::string serviceName; // Required service name.
 };
@@ -18,7 +19,7 @@ struct DeleteOptions {
 // or
 //    delete <serverName> <serviceName>
 // Throws std::invalid_argument if the arguments are missing or extra.
-void ParseDeleteOptions(const std::vector<std::string>& args, DeleteOptions &opts);
+void ParseDeleteOptions(const std::vector<std::string> &args, DeleteOptions &opts);
 
 // deleteService function: deletes the specified service.
 void deleteService(const DeleteOptions &opts);

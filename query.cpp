@@ -9,31 +9,62 @@
 #include "query.h"
 
 
-void help() {
-    std::cout << "Usage:\n"
-              << "  sc.exe [<servername>] query [<servicename>] \n"
-              << "       [type= <driver|service|all>] [type= <own|share|interact|kernel|filesys|rec|adapt>]\n"
-              << "       [state= <active|inactive|all>] [bufsize= <Buffersize>]\n"
-              << "       [ri= <Resumeindex>] [group= <groupname>]\n";
+void printQueryHelp()
+{
+    std::cout << R"(sc.exe [<servername>] query [<servicename>] [type= {driver | service | all}] [type= {own | share | interact | kernel | filesys | rec | adapt}] [state= {active | inactive | all}] [bufsize= <Buffersize>] [ri= <Resumeindex>] [group= <groupname>]
+
+    QUERY and QUERYEX OPTIONS:
+        If the query command is followed by a service name, the status
+        for that service is returned.  Further options do not apply in
+        this case.  If the query command is followed by nothing or one of
+        the options listed below, the services are enumerated.
+    type=    Type of services to enumerate (driver, service, userservice, all)
+             (default = service)
+    state=   State of services to enumerate (active, inactive, all)
+             (default = active)
+    bufsize= The size (in bytes) of the enumeration buffer
+             (default = 4096)
+    ri=      The resume index number at which to begin the enumeration
+             (default = 0)
+    group=   Service group to enumerate
+             (default = all groups)
+
+SYNTAX EXAMPLES
+sc query                - Enumerates status for active services & drivers
+sc query eventlog       - Displays status for the eventlog service
+sc queryex eventlog     - Displays extended status for the eventlog service
+sc query type= driver   - Enumerates only active drivers
+sc query type= service  - Enumerates only Win32 services
+sc query state= all     - Enumerates all services & drivers
+sc query bufsize= 50    - Enumerates with a 50 byte buffer
+sc query ri= 14         - Enumerates with resume index = 14
+sc queryex group= ""    - Enumerates active services not in a group
+sc query type= interact - Enumerates all interactive services
+sc query type= driver group= NDIS     - Enumerates all NDIS drivers
+)";
 }
+
 
 // Parse all tokens (arguments) following the subcommand for the "query" subcommand.
 // This function itself decides if the service name is provided as the first token.
-int ParseQueryOptions(const std::vector<std::string>& tokens, QueryOptions& opts) {
+int ParseQueryOptions(const std::vector<std::string> &tokens, QueryOptions &opts)
+{
     size_t index = 0;
 
-    if(tokens.size() == 0)
+    if (tokens.size() == 0)
     {
         query(opts);
         return true;
     }
     // If the first token does not contain '=' then treat it as the optional service name.
-    if(tokens[index].find('=') == std::string::npos && tokens.size() > 1) {
+    if (tokens[index].find('=') == std::string::npos && tokens.size() > 1)
+    {
         std::cerr << "Error: service name cannot be used with any other flags" << "\n";
-        help();
+        printQueryHelp();
         return EXIT_FAILURE;
     }
-    if (index < tokens.size() && tokens[index].find('=') == std::string::npos) {
+    if (index < tokens.size() && tokens[index].find('=') == std::string::npos)
+    {
         opts.serviceName = tokens[index];
         query(opts);
         return true;
@@ -42,75 +73,96 @@ int ParseQueryOptions(const std::vector<std::string>& tokens, QueryOptions& opts
 
     bool firstTypeFound = false;
     // Process remaining tokens as key-value pairs.
-    while (index < tokens.size()) {
+    while (index < tokens.size())
+    {
         // Each option is expected as a key token ending with '=' followed by its value.
-        const std::string& keyToken = tokens[index];
-        if (keyToken.size() < 2 || keyToken.back() != '=') {
-            std::cerr << "Error: Option token '" << keyToken 
+        const std::string &keyToken = tokens[index];
+        if (keyToken.size() < 2 || keyToken.back() != '=')
+        {
+            std::cerr << "Error: Option token '" << keyToken
                       << "' is not correctly formatted. Expected key= followed by its value.\n";
             return false;
         }
         std::string key = keyToken.substr(0, keyToken.size() - 1);
         ++index; // Move to value token.
-        if (index >= tokens.size()) {
+        if (index >= tokens.size())
+        {
             std::cerr << "Error: Missing value for option '" << key << "='\n";
             return false;
         }
         std::string value = tokens[index];
         ++index;
 
-        if (key == "type") {
-            if (!firstTypeFound) {
-                if (value != "driver" && value != "service" && value != "all") {
+        if (key == "type")
+        {
+            if (!firstTypeFound)
+            {
+                if (value != "driver" && value != "service" && value != "all")
+                {
                     std::cerr << "Error: Invalid value for type=. Allowed: driver, service, all.\n";
-                    help();
+                    printQueryHelp();
                     return EXIT_FAILURE;
                 }
                 opts.enumType = value;
                 firstTypeFound = true;
-            } else {
+            }
+            else
+            {
                 if (value != "own" && value != "share" && value != "interact" &&
-                    value != "kernel" && value != "filesys" && value != "rec" && value != "adapt") {
+                    value != "kernel" && value != "filesys" && value != "rec" && value != "adapt")
+                {
                     std::cerr << "Error: Invalid value for second type=. Allowed: own, share, interact, kernel, filesys, rec, adapt.\n";
-                    help();
+                    printQueryHelp();
                     return EXIT_FAILURE;
                 }
                 opts.type2Provided = true;
                 opts.serviceType = value;
             }
         }
-        else if (key == "state") {
-            if (value != "active" && value != "inactive" && value != "all") {
+        else if (key == "state")
+        {
+            if (value != "active" && value != "inactive" && value != "all")
+            {
                 std::cerr << "Error: Invalid value for state=. Allowed: active, inactive, all.\n";
-                help();
+                printQueryHelp();
                 return EXIT_FAILURE;
             }
             opts.state = value;
         }
-        else if (key == "bufsize") {
-            try {
+        else if (key == "bufsize")
+        {
+            try
+            {
                 opts.bufsize = std::stoul(value);
-            } catch (...) {
+            }
+            catch (...)
+            {
                 std::cerr << "Error: Invalid numeric value for bufsize=.\n";
-                help();
+                printQueryHelp();
                 return EXIT_FAILURE;
             }
         }
-        else if (key == "ri") {
-            try {
+        else if (key == "ri")
+        {
+            try
+            {
                 opts.resumeIndex = std::stoul(value);
-            } catch (...) {
+            }
+            catch (...)
+            {
                 std::cerr << "Error: Invalid numeric value for ri=.\n";
-                help();
+                printQueryHelp();
                 return EXIT_FAILURE;
             }
         }
-        else if (key == "group") {
+        else if (key == "group")
+        {
             opts.group = value;
         }
-        else {
+        else
+        {
             std::cerr << "Error: Unknown option '" << key << "='\n";
-            help();
+            printQueryHelp();
             return EXIT_FAILURE;
         }
     }
@@ -118,7 +170,6 @@ int ParseQueryOptions(const std::vector<std::string>& tokens, QueryOptions& opts
     query(opts);
     return true;
 }
-
 
 /*
 void query(const QueryOptions &opts) {
@@ -135,24 +186,32 @@ void query(const QueryOptions &opts) {
 */
 
 // Define our bit masks for convenience.
-constexpr DWORD OWN_BIT       = SERVICE_WIN32_OWN_PROCESS;      // 0x10
-constexpr DWORD SHARE_BIT     = SERVICE_WIN32_SHARE_PROCESS;    // 0x20
-constexpr DWORD EXTRA_MASK    = 0xC0;                           // bits 0x40 and 0x80
-constexpr DWORD INTERACTIVE_BIT = SERVICE_INTERACTIVE_PROCESS;  // 0x100
+constexpr DWORD OWN_BIT = SERVICE_WIN32_OWN_PROCESS;           // 0x10
+constexpr DWORD SHARE_BIT = SERVICE_WIN32_SHARE_PROCESS;       // 0x20
+constexpr DWORD EXTRA_MASK = 0xC0;                             // bits 0x40 and 0x80
+constexpr DWORD INTERACTIVE_BIT = SERVICE_INTERACTIVE_PROCESS; // 0x100
 
 // Helper: Convert a numeric service state into a string.
 std::string StateToString(DWORD state)
 {
     switch (state)
     {
-    case SERVICE_STOPPED:          return "STOPPED";
-    case SERVICE_START_PENDING:    return "START_PENDING";
-    case SERVICE_STOP_PENDING:     return "STOP_PENDING";
-    case SERVICE_RUNNING:          return "RUNNING";
-    case SERVICE_CONTINUE_PENDING: return "CONTINUE_PENDING";
-    case SERVICE_PAUSE_PENDING:    return "PAUSE_PENDING";
-    case SERVICE_PAUSED:           return "PAUSED";
-    default:                       return "UNKNOWN";
+    case SERVICE_STOPPED:
+        return "STOPPED";
+    case SERVICE_START_PENDING:
+        return "START_PENDING";
+    case SERVICE_STOP_PENDING:
+        return "STOP_PENDING";
+    case SERVICE_RUNNING:
+        return "RUNNING";
+    case SERVICE_CONTINUE_PENDING:
+        return "CONTINUE_PENDING";
+    case SERVICE_PAUSE_PENDING:
+        return "PAUSE_PENDING";
+    case SERVICE_PAUSED:
+        return "PAUSED";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -174,8 +233,8 @@ std::string DecodeServiceType(DWORD type)
         return "FILE_SYSTEM_DRIVER";
     if (type & SERVICE_RECOGNIZER_DRIVER)
         return "RECOGNIZER_DRIVER";
-    
-    bool own   = (type & OWN_BIT) != 0;
+
+    bool own = (type & OWN_BIT) != 0;
     bool share = (type & SHARE_BIT) != 0;
     bool interactive = (type & INTERACTIVE_BIT) != 0;
     DWORD extras = type & EXTRA_MASK;
@@ -210,60 +269,55 @@ std::string DecodeServiceType(DWORD type)
 }
 
 // Updated PrintServiceStatus function.
+// Updated PrintServiceStatus with an additional parameter to control display of the display name.
 void PrintServiceStatus(const std::string &serviceName, const std::string &displayName,
-                        const SERVICE_STATUS_PROCESS &ssp)
+                        const SERVICE_STATUS_PROCESS &ssp, bool showDisplayName)
 {
     std::cout << "\n";
     std::cout << "SERVICE_NAME: " << serviceName << "\n";
-    std::cout << "DISPLAY_NAME: " << displayName << "\n";
+    if (showDisplayName)
+    {
+        std::cout << "DISPLAY_NAME: " << displayName << "\n";
+    }
 
-    // Print dwServiceType in hexadecimal without extra leading zeroes.
     std::ostringstream hexStream;
     hexStream << std::hex << std::nouppercase << ssp.dwServiceType;
     std::string typeHex = hexStream.str();
 
-    // Decode the service type text.
     std::string typeDesc = DecodeServiceType(ssp.dwServiceType);
     std::cout << "        TYPE               : " << typeHex << "   " << typeDesc << "\n";
 
-    // Print state.
     std::string stateStr = StateToString(ssp.dwCurrentState);
     std::cout << "        STATE              : " << ssp.dwCurrentState << "  " << stateStr << "\n";
 
-    // Build a list of accepted control flags.
-    std::vector<std::string> controls;
-    // STOP control.
-    if (ssp.dwControlsAccepted & SERVICE_ACCEPT_STOP)
-        controls.push_back("STOPPABLE");
-    else
-        controls.push_back("NOT_STOPPABLE");
-    // PAUSE control.
-    if (ssp.dwControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE)
-        controls.push_back("PAUSABLE");
-    else
-        controls.push_back("NOT_PAUSABLE");
-    // Shutdown controls.
-    if (ssp.dwControlsAccepted & SERVICE_ACCEPT_PRESHUTDOWN)
+    // Print control flags only if the service is not stopped.
+    if (ssp.dwCurrentState != SERVICE_STOPPED)
     {
-        controls.push_back("ACCEPTS_PRESHUTDOWN");
-    }
-    else
-    {
-        if (ssp.dwControlsAccepted & SERVICE_ACCEPT_SHUTDOWN)
+        std::vector<std::string> controls;
+        if (ssp.dwControlsAccepted & SERVICE_ACCEPT_STOP)
+            controls.push_back("STOPPABLE");
+        else
+            controls.push_back("NOT_STOPPABLE");
+        if (ssp.dwControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE)
+            controls.push_back("PAUSABLE");
+        else
+            controls.push_back("NOT_PAUSABLE");
+        if (ssp.dwControlsAccepted & SERVICE_ACCEPT_PRESHUTDOWN)
+            controls.push_back("ACCEPTS_PRESHUTDOWN");
+        else if (ssp.dwControlsAccepted & SERVICE_ACCEPT_SHUTDOWN)
             controls.push_back("ACCEPTS_SHUTDOWN");
         else
             controls.push_back("IGNORES_SHUTDOWN");
+
+        std::cout << "                                (";
+        for (size_t i = 0; i < controls.size(); ++i)
+        {
+            std::cout << controls[i];
+            if (i != controls.size() - 1)
+                std::cout << ", ";
+        }
+        std::cout << ")\n";
     }
-    
-    // Print the control flags.
-    std::cout << "                                (";
-    for (size_t i = 0; i < controls.size(); ++i)
-    {
-        std::cout << controls[i];
-        if (i != controls.size() - 1)
-            std::cout << ", ";
-    }
-    std::cout << ")\n";
 
     std::cout << "        WIN32_EXIT_CODE    : " << ssp.dwWin32ExitCode
               << "  (0x" << std::hex << ssp.dwWin32ExitCode << std::dec << ")\n";
@@ -273,7 +327,6 @@ void PrintServiceStatus(const std::string &serviceName, const std::string &displ
     std::cout << "        WAIT_HINT          : 0x" << std::hex << ssp.dwWaitHint << std::dec << "\n";
 }
 
-
 //
 // The query function uses low-level Win32 APIs (ANSI versions) to query services similar to sc.exe.
 // It uses the QueryOptions settings and applies the following logic:
@@ -282,6 +335,7 @@ void PrintServiceStatus(const std::string &serviceName, const std::string &displ
 //    If no second type= parameter was provided (type2Provided == false), then for "service"
 //    enumeration we use SERVICE_WIN32 (both own and share) so that services like OneSyncSvc_a35a6 are not omitted.
 //
+
 void query(const QueryOptions &opts)
 {
     if (!opts.serviceName.empty())
@@ -312,7 +366,7 @@ void query(const QueryOptions &opts)
             return;
         }
 
-        // Retrieve configuration (to get the display name).
+        // Retrieve configuration (to get the display name), though we won't show it.
         LPQUERY_SERVICE_CONFIGA config = nullptr;
         DWORD bytesNeeded2 = 0;
         QueryServiceConfigA(hService, nullptr, 0, &bytesNeeded2);
@@ -330,7 +384,8 @@ void query(const QueryOptions &opts)
         }
         std::string displayName = (config && config->lpDisplayName) ? config->lpDisplayName : opts.serviceName;
 
-        PrintServiceStatus(opts.serviceName, displayName, ssp);
+        // Pass false for showDisplayName when querying a specific service.
+        PrintServiceStatus(opts.serviceName, displayName, ssp, false);
 
         if (config)
             LocalFree(config);
@@ -363,8 +418,6 @@ void query(const QueryOptions &opts)
         }
         else if (opts.enumType == "service")
         {
-            // If a second type was explicitly provided, narrow by the provided type.
-            // Otherwise, enumerate all Win32 services (both own and share) so that shared services such as OneSyncSvc_a35a6 are included.
             if (opts.type2Provided)
             {
                 if (opts.serviceType == "own")
@@ -406,8 +459,7 @@ void query(const QueryOptions &opts)
             &bytesNeeded,
             &servicesReturned,
             &resumeHandle,
-            opts.group.empty() ? nullptr : opts.group.c_str()
-        );
+            opts.group.empty() ? nullptr : opts.group.c_str());
         if (!success && GetLastError() != ERROR_MORE_DATA)
         {
             std::cerr << "EnumServicesStatusEx failed, error: " << GetLastError() << "\n";
@@ -426,8 +478,7 @@ void query(const QueryOptions &opts)
             &bytesNeeded,
             &servicesReturned,
             &resumeHandle,
-            opts.group.empty() ? nullptr : opts.group.c_str()
-        );
+            opts.group.empty() ? nullptr : opts.group.c_str());
         if (!success)
         {
             std::cerr << "EnumServicesStatusEx (second call) failed, error: " << GetLastError() << "\n";
@@ -438,8 +489,9 @@ void query(const QueryOptions &opts)
         LPENUM_SERVICE_STATUS_PROCESSA services = reinterpret_cast<LPENUM_SERVICE_STATUS_PROCESSA>(buffer.data());
         for (DWORD i = 0; i < servicesReturned; i++)
         {
+            // For enumeration, we show the display name.
             PrintServiceStatus(services[i].lpServiceName, services[i].lpDisplayName,
-                               services[i].ServiceStatusProcess);
+                               services[i].ServiceStatusProcess, true);
         }
         CloseServiceHandle(hSCManager);
     }

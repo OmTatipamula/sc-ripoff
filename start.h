@@ -4,9 +4,10 @@
 #include <string>
 
 // Structure holding options for starting or stopping a service.
-struct StartStopOptions {
-    std::string serverName;   // If empty or "\\\\local", local machine is used.
-    std::string serviceName;  // The service name (key name)
+struct StartStopOptions
+{
+    std::string serverName;  // If empty or "\\\\local", local machine is used.
+    std::string serviceName; // The service name (key name)
 };
 
 // Starts the specified service.
